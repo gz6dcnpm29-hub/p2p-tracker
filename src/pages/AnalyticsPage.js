@@ -132,10 +132,10 @@ export default function AnalyticsPage() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         {[
-          { label: 'Загальний профіт', value: avgBuyRate > 0 ? `$${fmt(totalProfit / avgBuyRate)}` : `₴${fmt(totalProfit)}`, sub: `₴${fmt(totalProfit)}`, color: 'var(--green)' },
+          { label: 'Загальний профіт', value: avgBuyRate > 0 ? `${fmt(totalProfit / avgBuyRate)} USDT` : `₴${fmt(totalProfit)}`, sub: `₴${fmt(totalProfit)}`, color: 'var(--green)' },
           { label: 'Об\'єм UAH', value: `₴${fmt(totalVolume, 0)}`, color: 'var(--yellow)' },
           { label: 'Кількість пар', value: filteredPairs.length, color: 'var(--blue)' },
-          { label: 'Сер. профіт/пара', value: avgBuyRate > 0 ? `$${fmt(avgProfitPerPair / avgBuyRate)}` : `₴${fmt(avgProfitPerPair)}`, sub: `₴${fmt(avgProfitPerPair)}`, color: 'var(--green)' },
+          { label: 'Сер. профіт/пара', value: avgBuyRate > 0 ? `${fmt(avgProfitPerPair / avgBuyRate)} USDT` : `₴${fmt(avgProfitPerPair)}`, sub: `₴${fmt(avgProfitPerPair)}`, color: 'var(--green)' },
           { label: 'Ордерів', value: filteredOrders.length, color: 'var(--text)' },
         ].map(c => (
           <div key={c.label} style={S.card}>
@@ -229,7 +229,7 @@ export default function AnalyticsPage() {
 
         {/* Top by profit */}
         <div style={S.card}>
-          <div style={S.cardTitle}>Топ по профіту USD</div>
+          <div style={S.cardTitle}>Топ по профіту USDT</div>
           {topByProfit.length === 0
             ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає даних. Створіть пари для підрахунку профіту.</div>
             : topByProfit.map((w, i) => (
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
                   <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>{w.name}</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)' }}>{toUSD(w.profitUah) ? `$${fmt(toUSD(w.profitUah))}` : `₴${fmt(w.profitUah)}`}</div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)' }}>{toUSD(w.profitUah) ? `${fmt(toUSD(w.profitUah))} USDT` : `₴${fmt(w.profitUah)}`}</div>
                   <div style={{ fontSize: '10px', color: 'var(--text3)' }}>₴{fmt(w.profitUah)}</div>
                 </div>
               </div>
