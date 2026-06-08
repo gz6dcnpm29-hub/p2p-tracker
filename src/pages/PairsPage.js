@@ -15,6 +15,7 @@ export default function PairsPage() {
   const [saving, setSaving] = useState(false)
   const [filterDate, setFilterDate] = useState(todayStr())
   const [useDateFilter, setUseDateFilter] = useState(false)
+  const [filterWorker, setFilterWorker] = useState('all')
 
   const load = async () => {
     const { data: o } = await supabase.from('orders').select('*').order('created_at', { ascending: false })
@@ -35,14 +36,15 @@ export default function PairsPage() {
 
   const buyOrders = orders.filter(o => o.type === 'buy')
   const sellOrders = orders.filter(o => o.type === 'sell')
+  const workers = [...new Set(orders.map(o => o.worker_name))]
 
-  // Filter by date if enabled
-  const filteredBuyOrders = useDateFilter
-    ? buyOrders.filter(o => o.created_at.slice(0, 10) === filterDate)
-    : buyOrders
-  const filteredSellOrders = useDateFilter
-    ? sellOrders.filter(o => o.created_at.slice(0, 10) === filterDate)
-    : sellOrders
+  // Filter by date and worker
+  const filteredBuyOrders = buyOrders
+    .filter(o => !useDateFilter || o.created_at.slice(0, 10) === filterDate)
+    .filter(o => filterWorker === 'all' || o.worker_name === filterWorker)
+  const filteredSellOrders = sellOrders
+    .filter(o => !useDateFilter || o.created_at.slice(0, 10) === filterDate)
+    .filter(o => filterWorker === 'all' || o.worker_name === filterWorker)
 
   const toggleId = (id, list, setList) => {
     setList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -161,6 +163,13 @@ export default function PairsPage() {
                 onClick={() => setUseDateFilter(!useDateFilter)}>
                 Фільтр за датою
               </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text3)' }}>Воркер:</span>
+              <select value={filterWorker} onChange={e => { setFilterWorker(e.target.value); setSelectedBuyIds([]); setSelectedSellIds([]) }} style={{ ...S.select, width: 'auto', padding: '6px 12px', fontSize: '11px' }}>
+                <option value='all'>Всі</option>
+                {workers.map(w => <option key={w} value={w}>{w}</option>)}
+              </select>
             </div>
             {useDateFilter && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
