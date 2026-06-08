@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../App'
-import { S, fmt, fmtDate, calcSpread, calcProfit, Spinner } from '../components/ui'
+import { S, fmt, fmtDate, Spinner } from '../components/ui'
 
 export default function PairsPage() {
   const { profile } = useAuth()
   const [orders, setOrders] = useState([])
   const [pairs, setPairs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [buyId, setBuyId] = useState('')
-  const [sellId, setSellId] = useState('')
+  const [selectedBuyIds, setSelectedBuyIds] = useState([])
+  const [selectedSellIds, setSelectedSellIds] = useState([])
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
@@ -31,31 +31,52 @@ export default function PairsPage() {
 
   const buyOrders = orders.filter(o => o.type === 'buy')
   const sellOrders = orders.filter(o => o.type === 'sell')
-  const selectedBuy = orders.find(o => o.id === buyId)
-  const selectedSell = orders.find(o => o.id === sellId)
 
-  const preview = selectedBuy && selectedSell ? {
-    spread: calcSpread(+selectedBuy.rate, +selectedSell.rate),
-    profit: calcProfit(+selectedBuy.rate, +selectedSell.rate, Math.min(+selectedBuy.volume_uah, +selectedSell.volume_uah)),
-    diff: (+selectedSell.rate - +selectedBuy.rate).toFixed(4),
-  } : null
+  const toggleId = (id, list, setList) => {
+    setList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  // Aggregate selected orders
+  const selectedBuyOrders = buyOrders.filter(o => selectedBuyIds.includes(o.id))
+  const selectedSellOrders = sellOrders.filter(o => selectedSellIds.includes(o.id))
+
+  const totalBuyUAH = selectedBuyOrders.reduce((s, o) => s + +o.volume_uah, 0)
+  const totalSellUAH = selectedSellOrders.reduce((s, o) => s + +o.volume_uah, 0)
+  const totalBuyUSDT = selectedBuyOrders.reduce((s, o) => s + +o.volume_usdt, 0)
+  const totalSellUSDT = selectedSellOrders.reduce((s, o) => s + +o.volume_usdt, 0)
+  const avgBuyRate = totalBuyUSDT > 0 ? totalBuyUAH / totalBuyUSDT : 0
+  const avgSellRate = totalSellUSDT > 0 ? totalSellUAH / totalSellUSDT : 0
+
+  const spread = avgBuyRate && avgSellRate ? (((avgSellRate - avgBuyRate) / avgBuyRate) * 100).toFixed(3) : null
+  const minUSDT = Math.min(totalBuyUSDT, totalSellUSDT)
+  const profit = avgBuyRate && avgSellRate && minUSDT > 0
+    ? ((avgSellRate - avgBuyRate) * minUSDT).toFixed(2)
+    : null
+
+  const hasPreview = selectedBuyIds.length > 0 && selectedSellIds.length > 0
 
   const savePair = async () => {
-    if (!selectedBuy || !selectedSell) return alert('Оберіть обидва ордери')
+    if (!hasPreview) return alert('Оберіть хоча б по одному ордеру з кожної сторони')
     setSaving(true)
+    const workers = [...new Set([
+      ...selectedBuyOrders.map(o => o.worker_name),
+      ...selectedSellOrders.map(o => o.worker_name)
+    ])].join(', ')
+
     const { error } = await supabase.from('pairs').insert({
-      buy_order_id: selectedBuy.id,
-      sell_order_id: selectedSell.id,
-      buy_rate: +selectedBuy.rate,
-      sell_rate: +selectedSell.rate,
-      spread_pct: parseFloat(calcSpread(+selectedBuy.rate, +selectedSell.rate)),
-      profit_uah: parseFloat(calcProfit(+selectedBuy.rate, +selectedSell.rate, Math.min(+selectedBuy.volume_uah, +selectedSell.volume_uah))),
-      workers: `${selectedBuy.worker_name} / ${selectedSell.worker_name}`,
+      buy_order_id: selectedBuyIds[0],
+      sell_order_id: selectedSellIds[0],
+      buy_rate: +avgBuyRate.toFixed(4),
+      sell_rate: +avgSellRate.toFixed(4),
+      spread_pct: parseFloat(spread),
+      profit_uah: parseFloat(profit),
+      workers,
       created_by: profile?.id,
     })
     setSaving(false)
     if (error) return alert(error.message)
-    setBuyId(''); setSellId('')
+    setSelectedBuyIds([])
+    setSelectedSellIds([])
     load()
   }
 
@@ -67,61 +88,123 @@ export default function PairsPage() {
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><Spinner size={32} /></div>
 
+  const OrderCheckbox = ({ order, selected, onToggle }) => (
+    <div
+      onClick={onToggle}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+        border: `1px solid ${selected ? 'rgba(99,255,176,0.4)' : 'rgba(255,255,255,0.07)'}`,
+        background: selected ? 'rgba(99,255,176,0.07)' : 'rgba(255,255,255,0.02)',
+        marginBottom: '6px', transition: 'all 0.15s',
+      }}
+    >
+      <div style={{
+        width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
+        border: `2px solid ${selected ? 'var(--green)' : 'var(--text3)'}`,
+        background: selected ? 'var(--green)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {selected && <span style={{ color: '#0a0e1a', fontSize: '10px', fontWeight: '900' }}>✓</span>}
+      </div>
+      <div style={{ flex: 1, fontSize: '12px' }}>
+        <span style={{ color: 'var(--text)', fontWeight: '600' }}>{order.worker_name}</span>
+        <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
+        <span style={{ color: 'var(--yellow)', fontWeight: '700' }}>{fmt(order.rate, 2)}₴</span>
+        <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
+        <span style={{ color: 'var(--text2)' }}>₴{fmt(order.volume_uah, 0)}</span>
+        <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
+        <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{new Date(order.created_at).toLocaleDateString('uk-UA')}</span>
+      </div>
+    </div>
+  )
+
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text)', letterSpacing: '1px' }}>Пари / Спред</h1>
-        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Зв'яжіть ордери buy+sell для підрахунку профіту</div>
+        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Оберіть кілька ордерів buy і sell — система порахує середній курс і загальний профіт</div>
       </div>
 
       {profile?.role === 'admin' && (
         <div style={S.card}>
           <div style={S.cardTitle}>Створити пару</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
+            {/* BUY side */}
             <div>
-              <label style={S.label}>Ордер BUY</label>
-              <select value={buyId} onChange={e => setBuyId(e.target.value)} style={S.select}>
-                <option value="">— оберіть —</option>
-                {buyOrders.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.worker_name} · {fmt(o.rate, 2)}₴ · ₴{fmt(o.volume_uah, 0)} · {new Date(o.created_at).toLocaleDateString('uk-UA')}
-                  </option>
-                ))}
-              </select>
+              <div style={{ ...S.label, color: '#22c55e', marginBottom: '10px' }}>
+                ✓ ОРДЕРИ BUY ({selectedBuyIds.length} обрано · ₴{fmt(totalBuyUAH, 0)})
+              </div>
+              {buyOrders.length === 0
+                ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає ордерів buy</div>
+                : buyOrders.map(o => (
+                  <OrderCheckbox
+                    key={o.id}
+                    order={o}
+                    selected={selectedBuyIds.includes(o.id)}
+                    onToggle={() => toggleId(o.id, selectedBuyIds, setSelectedBuyIds)}
+                  />
+                ))
+              }
             </div>
+
+            {/* SELL side */}
             <div>
-              <label style={S.label}>Ордер SELL</label>
-              <select value={sellId} onChange={e => setSellId(e.target.value)} style={S.select}>
-                <option value="">— оберіть —</option>
-                {sellOrders.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.worker_name} · {fmt(o.rate, 2)}₴ · ₴{fmt(o.volume_uah, 0)} · {new Date(o.created_at).toLocaleDateString('uk-UA')}
-                  </option>
-                ))}
-              </select>
+              <div style={{ ...S.label, color: 'var(--red)', marginBottom: '10px' }}>
+                ✓ ОРДЕРИ SELL ({selectedSellIds.length} обрано · ₴{fmt(totalSellUAH, 0)})
+              </div>
+              {sellOrders.length === 0
+                ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає ордерів sell</div>
+                : sellOrders.map(o => (
+                  <OrderCheckbox
+                    key={o.id}
+                    order={o}
+                    selected={selectedSellIds.includes(o.id)}
+                    onToggle={() => toggleId(o.id, selectedSellIds, setSelectedSellIds)}
+                  />
+                ))
+              }
             </div>
           </div>
 
-          {preview && (
-            <div style={{ padding: '16px', background: 'rgba(99,255,176,0.05)', border: '1px solid rgba(99,255,176,0.2)', borderRadius: '10px', marginBottom: '14px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СПРЕД %</div>
-                <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--green)' }}>{preview.spread}%</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>РІЗНИЦЯ КУРСІВ</div>
-                <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--yellow)' }}>₴{preview.diff}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ UAH</div>
-                <div style={{ fontSize: '32px', fontWeight: '800', color: '#22c55e' }}>₴{preview.profit}</div>
+          {/* Preview */}
+          {hasPreview && (
+            <div style={{ padding: '16px', background: 'rgba(99,255,176,0.05)', border: '1px solid rgba(99,255,176,0.2)', borderRadius: '10px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС BUY</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>{fmt(avgBuyRate, 2)}₴</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС SELL</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--red)' }}>{fmt(avgSellRate, 2)}₴</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СПРЕД %</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--green)' }}>{spread}%</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>РІЗНИЦЯ КУРСІВ</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--yellow)' }}>₴{fmt(avgSellRate - avgBuyRate, 4)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ UAH</div>
+                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>₴{fmt(profit)}</div>
+                </div>
               </div>
             </div>
           )}
 
-          <button style={S.btnPrimary} onClick={savePair} disabled={saving || !buyId || !sellId}>
-            {saving ? 'ЗБЕРЕЖЕННЯ...' : '✓ ЗБЕРЕГТИ ПАРУ'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button style={S.btnPrimary} onClick={savePair} disabled={saving || !hasPreview}>
+              {saving ? 'ЗБЕРЕЖЕННЯ...' : '✓ ЗБЕРЕГТИ ПАРУ'}
+            </button>
+            {(selectedBuyIds.length > 0 || selectedSellIds.length > 0) && (
+              <button style={S.btnSecondary} onClick={() => { setSelectedBuyIds([]); setSelectedSellIds([]) }}>
+                Скинути вибір
+              </button>
+            )}
+          </div>
         </div>
       )}
 
