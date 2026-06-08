@@ -88,6 +88,9 @@ export default function DashboardPage() {
   const totalUSDT = filtered.reduce((s, o) => s + +o.volume_usdt, 0)
   const totalProfit = filteredPairs.reduce((s, p) => s + +(p.profit_uah || 0), 0)
 
+  // Профит в USD — делим на средний курс покупки за период
+  const totalProfitUSD = avgBuy > 0 ? totalProfit / avgBuy : null
+
   const isFiltered = filterWorker !== 'all' || dateFrom !== monthAgo() || dateTo !== today()
 
   return (
@@ -166,6 +169,7 @@ export default function DashboardPage() {
         <StatCard label="Сер. курс BUY" value={avgBuy ? fmt(avgBuy, 2) : '—'} sub="UAH/USDT" color="var(--success)" />
         <StatCard label="Сер. курс SELL" value={avgSell ? fmt(avgSell, 2) : '—'} sub="UAH/USDT" color="var(--red)" />
         {profile?.role === 'admin' && <StatCard label="Профіт за період" value={`₴${fmt(totalProfit)}`} sub="по парам" color="var(--green)" />}
+        {profile?.role === 'admin' && totalProfitUSD !== null && <StatCard label="Профіт USD" value={`$${fmt(totalProfitUSD)}`} sub={`курс ${fmt(avgBuy, 2)}₴`} color="var(--blue)" />}
       </div>
 
       {avgBuy > 0 && avgSell > 0 && profile?.role === 'admin' && (
