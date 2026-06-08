@@ -16,7 +16,8 @@ export default function Layout() {
     { to: '/add', label: '➕ Новий ордер' },
     { to: '/orders', label: '📋 Ордери' },
     { to: '/pairs', label: '🔗 Пари / Спред' },
-    ...(profile?.role === 'admin' ? [{ to: '/admin', label: '⚙️ Адмін' }] : []),
+    { to: '/top', label: '🏆 Топ' },
+    ...(profile?.role === 'admin' ? [{ to: '/analytics', label: '📈 Аналітика' }, { to: '/admin', label: '⚙️ Адмін' }] : []),
   ]
 
   return (
