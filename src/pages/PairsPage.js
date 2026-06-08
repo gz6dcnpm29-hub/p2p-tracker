@@ -68,6 +68,23 @@ export default function PairsPage() {
   const spread = avgBuyRate && avgSellRate ? (((avgSellRate - avgBuyRate) / avgBuyRate) * 100).toFixed(3) : null
   const minUSDT = Math.min(totalBuyUSDT, totalSellUSDT)
   const profit = avgBuyRate && avgSellRate && minUSDT > 0 ? ((avgSellRate - avgBuyRate) * minUSDT).toFixed(2) : null
+
+  // Avg buy rate today for USD equivalent
+  const todayBuyOrders = buyOrders.filter(o => o.created_at.slice(0, 10) === todayStr())
+  const todayBuyUAH = todayBuyOrders.reduce((s, o) => s + +o.volume_uah, 0)
+  const todayBuyUSDT2 = todayBuyOrders.reduce((s, o) => s + +o.volume_usdt, 0)
+  const avgRateToday = todayBuyUSDT2 > 0 ? todayBuyUAH / todayBuyUSDT2 : avgBuyRate
+  const profitUSD = profit && avgRateToday > 0 ? (parseFloat(profit) / avgRateToday).toFixed(2) : null
+
+  // For saved pairs table
+  const getProfitUSD = (profitUah, date) => {
+    const dayBuy = buyOrders.filter(o => o.created_at.slice(0, 10) === date?.slice(0, 10))
+    const dUAH = dayBuy.reduce((s, o) => s + +o.volume_uah, 0)
+    const dUSDT = dayBuy.reduce((s, o) => s + +o.volume_usdt, 0)
+    const rate = dUSDT > 0 ? dUAH / dUSDT : avgRateToday
+    return rate > 0 ? (profitUah / rate).toFixed(2) : null
+  }
+
   const hasPreview = selectedBuyIds.length > 0 && selectedSellIds.length > 0
 
   const savePair = async () => {
@@ -264,6 +281,7 @@ export default function PairsPage() {
                 <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СПРЕД %</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--green)' }}>{spread}%</div></div>
                 <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>РІЗНИЦЯ</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--yellow)' }}>₴{fmt(avgSellRate - avgBuyRate, 4)}</div></div>
                 <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ UAH</div><div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>₴{fmt(profit)}</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ USD</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--blue)' }}>{profitUSD ? `$${fmt(profitUSD)}` : '—'}</div><div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>курс {fmt(avgRateToday, 2)}₴</div></div>
               </div>
             </div>
           )}
@@ -288,7 +306,7 @@ export default function PairsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Дата', 'Працівники', 'Курс BUY', 'Курс SELL', 'Спред %', 'Профіт UAH', ''].map(h => (
+                {['Дата', 'Працівники', 'Курс BUY', 'Курс SELL', 'Спред %', 'Профіт UAH', 'Профіт USD', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -302,6 +320,7 @@ export default function PairsPage() {
                   <td style={{ ...S.td, color: 'var(--red)', fontWeight: '700' }}>{fmt(p.sell_rate, 2)}</td>
                   <td style={{ ...S.td, color: 'var(--green)', fontWeight: '800', fontSize: '14px' }}>{p.spread_pct}%</td>
                   <td style={{ ...S.td, color: 'var(--yellow)', fontWeight: '700' }}>₴{fmt(p.profit_uah)}</td>
+                  <td style={{ ...S.td, color: 'var(--blue)', fontWeight: '700' }}>{(() => { const u = getProfitUSD(+p.profit_uah, p.created_at); return u ? `$${fmt(u)}` : '—' })()}</td>
                   <td style={S.td}>
                     {profile?.role === 'admin' && (
                       <button style={S.btnDanger} onClick={() => deletePair(p.id)}>✕</button>
