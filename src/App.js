@@ -11,6 +11,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import TopPage from './pages/TopPage'
 import MyReportPage from './pages/MyReportPage'
 import LossesPage from './pages/LossesPage'
+import StatusLogsPage from './pages/StatusLogsPage'
 import Layout from './components/Layout'
 
 export const AuthContext = createContext(null)
@@ -67,6 +68,9 @@ export default function App() {
             <Route path="top" element={<TopPage />} />
             <Route path="report" element={<MyReportPage />} />
             <Route path="losses" element={<LossesPage />} />
+            <Route path="status-logs" element={
+              profile?.role === 'admin' ? <StatusLogsPage /> : <Navigate to="/" />
+            } />
             <Route path="analytics" element={
               profile?.role === 'admin' ? <AnalyticsPage /> : <Navigate to="/" />
             } />
