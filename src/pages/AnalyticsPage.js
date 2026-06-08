@@ -63,18 +63,22 @@ export default function AnalyticsPage() {
   const workerMap = {}
   filteredOrders.forEach(o => {
     if (!workerMap[o.worker_name]) workerMap[o.worker_name] = { uah: 0, usdt: 0, count: 0, buy: 0, sell: 0 }
-    workerMap[o.worker_name].uah += +o.volume_uah
-    workerMap[o.worker_name].usdt += +o.volume_usdt
+    // Объём только по покупкам
+    if (o.type === 'buy') {
+      workerMap[o.worker_name].uah += +o.volume_uah
+      workerMap[o.worker_name].usdt += +o.volume_usdt
+      workerMap[o.worker_name].buy += 1
+    } else {
+      workerMap[o.worker_name].sell += 1
+    }
     workerMap[o.worker_name].count += 1
-    if (o.type === 'buy') workerMap[o.worker_name].buy += 1
-    else workerMap[o.worker_name].sell += 1
   })
 
   const topByVolume = Object.entries(workerMap)
     .map(([name, d]) => ({ name, ...d }))
-    .sort((a, b) => b.uah - a.uah)
+    .sort((a, b) => b.usdt - a.usdt)
 
-  const maxUAH = Math.max(...topByVolume.map(w => w.uah), 1)
+  const maxUSDT = Math.max(...topByVolume.map(w => w.usdt), 1)
 
   // ── Top workers by profit (from pairs) ───────────────────────
   const profitMap = {}
@@ -95,7 +99,9 @@ export default function AnalyticsPage() {
 
   // ── Summary stats ─────────────────────────────────────────────
   const totalProfit = filteredPairs.reduce((s, p) => s + +(p.profit_uah || 0), 0)
-  const totalVolume = filteredOrders.reduce((s, o) => s + +o.volume_uah, 0)
+  const buyOrders = filteredOrders.filter(o => o.type === 'buy')
+  const totalVolume = buyOrders.reduce((s, o) => s + +o.volume_uah, 0)
+  const totalVolumeUSDT = buyOrders.reduce((s, o) => s + +o.volume_usdt, 0)
   const avgProfitPerPair = filteredPairs.length ? totalProfit / filteredPairs.length : 0
 
   return (
@@ -131,6 +137,7 @@ export default function AnalyticsPage() {
           <div key={c.label} style={S.card}>
             <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '8px' }}>{c.label}</div>
             <div style={{ fontSize: '24px', fontWeight: '800', color: c.color }}>{c.value}</div>
+            {c.sub && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>{c.sub}</div>}
           </div>
         ))}
       </div>
@@ -184,7 +191,7 @@ export default function AnalyticsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         {/* Top by volume */}
         <div style={S.card}>
-          <div style={S.cardTitle}>Топ по об'єму UAH</div>
+          <div style={S.cardTitle}>Топ по об'єму USDT</div>
           {topByVolume.length === 0
             ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає даних</div>
             : topByVolume.map((w, i) => (
@@ -200,14 +207,14 @@ export default function AnalyticsPage() {
                   <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>{w.name}</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--yellow)' }}>₴{fmt(w.uah, 0)}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{w.count} ордерів · buy:{w.buy} sell:{w.sell}</div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--blue)' }}>{fmt(w.usdt)} USDT</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>₴{fmt(w.uah, 0)} · buy:{w.buy} sell:{w.sell}</div>
                 </div>
               </div>
               <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px' }}>
                 <div style={{
                   height: '100%', borderRadius: '2px',
-                  width: `${(w.uah / maxUAH) * 100}%`,
+                  width: `${(w.usdt / maxUSDT) * 100}%`,
                   background: COLORS[i % COLORS.length],
                   transition: 'width 0.4s ease',
                 }} />
