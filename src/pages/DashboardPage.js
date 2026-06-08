@@ -164,9 +164,9 @@ export default function DashboardPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '4px' }}>
         <StatCard label="Всього ордерів" value={filtered.length} sub={`buy: ${buy.length} · sell: ${sell.length}`} />
-        <StatCard label="Об'єм UAH" value={`₴${fmt(totalUAH, 0)}`} color="var(--yellow)" />
-        <StatCard label="Об'єм USDT" value={fmt(totalUSDT)} sub="USDT" color="var(--blue)" />
-        <StatCard label="Сер. курс BUY" value={avgBuy ? fmt(avgBuy, 2) : '—'} sub="UAH/USDT" color="var(--success)" />
+        <StatCard label="Куплено USDT" value={fmt(buyTotalUSDT)} sub={`₴${fmt(buyTotalUAH, 0)}`} color="#22c55e" />
+        <StatCard label="Продано USDT" value={fmt(sellTotalUSDT)} sub={`₴${fmt(sellTotalUAH, 0)}`} color="var(--red)" />
+        <StatCard label="Сер. курс BUY" value={avgBuy ? fmt(avgBuy, 2) : '—'} sub="UAH/USDT" color="#22c55e" />
         <StatCard label="Сер. курс SELL" value={avgSell ? fmt(avgSell, 2) : '—'} sub="UAH/USDT" color="var(--red)" />
         {profile?.role === 'admin' && <StatCard label="Профіт за період" value={`₴${fmt(totalProfit)}`} sub="по парам" color="var(--green)" />}
         {profile?.role === 'admin' && totalProfitUSD !== null && <StatCard label="Профіт USD" value={`$${fmt(totalProfitUSD)}`} sub={`курс ${fmt(avgBuy, 2)}₴`} color="var(--blue)" />}
