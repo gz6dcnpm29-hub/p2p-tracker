@@ -92,10 +92,10 @@ export default function AnalyticsPage() {
   })
 
   const topByProfit = Object.entries(profitMap)
-    .map(([name, profit]) => ({ name, profit }))
-    .sort((a, b) => b.profit - a.profit)
+    .map(([name, profitUah]) => ({ name, profitUah }))
+    .sort((a, b) => b.profitUah - a.profitUah)
 
-  const maxProfitW = Math.max(...topByProfit.map(w => w.profit), 1)
+  const maxProfitW = Math.max(...topByProfit.map(w => w.profitUah), 1)
 
   // ── Summary stats ─────────────────────────────────────────────
   const totalProfit = filteredPairs.reduce((s, p) => s + +(p.profit_uah || 0), 0)
@@ -103,6 +103,10 @@ export default function AnalyticsPage() {
   const totalVolume = buyOrders.reduce((s, o) => s + +o.volume_uah, 0)
   const totalVolumeUSDT = buyOrders.reduce((s, o) => s + +o.volume_usdt, 0)
   const avgProfitPerPair = filteredPairs.length ? totalProfit / filteredPairs.length : 0
+
+  // Средний курс покупки за период — для конвертации в USD
+  const avgBuyRate = totalVolumeUSDT > 0 ? totalVolume / totalVolumeUSDT : 0
+  const toUSD = (uah) => avgBuyRate > 0 ? (uah / avgBuyRate).toFixed(2) : null
 
   return (
     <div>
@@ -128,10 +132,10 @@ export default function AnalyticsPage() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         {[
-          { label: 'Загальний профіт', value: `₴${fmt(totalProfit)}`, color: 'var(--green)' },
+          { label: 'Загальний профіт', value: avgBuyRate > 0 ? `$${fmt(totalProfit / avgBuyRate)}` : `₴${fmt(totalProfit)}`, sub: `₴${fmt(totalProfit)}`, color: 'var(--green)' },
           { label: 'Об\'єм UAH', value: `₴${fmt(totalVolume, 0)}`, color: 'var(--yellow)' },
           { label: 'Кількість пар', value: filteredPairs.length, color: 'var(--blue)' },
-          { label: 'Сер. профіт/пара', value: `₴${fmt(avgProfitPerPair)}`, color: 'var(--green)' },
+          { label: 'Сер. профіт/пара', value: avgBuyRate > 0 ? `$${fmt(avgProfitPerPair / avgBuyRate)}` : `₴${fmt(avgProfitPerPair)}`, sub: `₴${fmt(avgProfitPerPair)}`, color: 'var(--green)' },
           { label: 'Ордерів', value: filteredOrders.length, color: 'var(--text)' },
         ].map(c => (
           <div key={c.label} style={S.card}>
@@ -225,7 +229,7 @@ export default function AnalyticsPage() {
 
         {/* Top by profit */}
         <div style={S.card}>
-          <div style={S.cardTitle}>Топ по профіту UAH</div>
+          <div style={S.cardTitle}>Топ по профіту USD</div>
           {topByProfit.length === 0
             ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає даних. Створіть пари для підрахунку профіту.</div>
             : topByProfit.map((w, i) => (
@@ -240,12 +244,15 @@ export default function AnalyticsPage() {
                   }}>{i + 1}</span>
                   <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text)' }}>{w.name}</span>
                 </div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)' }}>₴{fmt(w.profit)}</div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)' }}>{toUSD(w.profitUah) ? `$${fmt(toUSD(w.profitUah))}` : `₴${fmt(w.profitUah)}`}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text3)' }}>₴{fmt(w.profitUah)}</div>
+                </div>
               </div>
               <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px' }}>
                 <div style={{
                   height: '100%', borderRadius: '2px',
-                  width: `${(w.profit / maxProfitW) * 100}%`,
+                  width: `${(w.profitUah / maxProfitW) * 100}%`,
                   background: COLORS[i % COLORS.length],
                   transition: 'width 0.4s ease',
                 }} />
