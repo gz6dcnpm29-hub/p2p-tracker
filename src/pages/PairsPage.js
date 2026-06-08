@@ -275,6 +275,21 @@ export default function PairsPage() {
           {/* Preview */}
           {hasPreview && (
             <div style={{ padding: '16px', background: 'rgba(99,255,176,0.05)', border: '1px solid rgba(99,255,176,0.2)', borderRadius: '10px', marginBottom: '16px' }}>
+              {/* Volumes row */}
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px', padding: '10px 12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                  Загальний об'єм:
+                  <span style={{ color: 'var(--yellow)', fontWeight: '700', marginLeft: '6px' }}>₴{fmt(totalBuyUAH + totalSellUAH, 0)}</span>
+                  <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
+                  <span style={{ color: 'var(--blue)', fontWeight: '700' }}>{fmt(totalBuyUSDT + totalSellUSDT)} USDT</span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                  BUY: <span style={{ color: '#22c55e', fontWeight: '600' }}>₴{fmt(totalBuyUAH, 0)}</span> · <span style={{ color: '#22c55e' }}>{fmt(totalBuyUSDT)} USDT</span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text3)' }}>
+                  SELL: <span style={{ color: 'var(--red)', fontWeight: '600' }}>₴{fmt(totalSellUAH, 0)}</span> · <span style={{ color: 'var(--red)' }}>{fmt(totalSellUSDT)} USDT</span>
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                 <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС BUY</div><div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>{fmt(avgBuyRate, 2)}₴</div></div>
                 <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС SELL</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--red)' }}>{fmt(avgSellRate, 2)}₴</div></div>
