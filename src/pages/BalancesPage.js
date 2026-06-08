@@ -60,6 +60,13 @@ export default function BalancesPage() {
     }
   })
 
+  // Can edit only last 3 days
+  const canEdit = (date) => {
+    const d = new Date(date)
+    const diff = (new Date() - d) / 86400000
+    return diff <= 3
+  }
+
   const submit = async () => {
     if (!form.amount || !form.date) return alert('Заповніть суму та дату')
     setSaving(true)
@@ -80,7 +87,11 @@ export default function BalancesPage() {
 
   const saveEdit = async (id) => {
     if (!editAmount) return
-    await supabase.from('balances').update({ amount_usdt: parseFloat(editAmount) }).eq('id', id)
+    await supabase.from('balances').update({ 
+      amount_usdt: parseFloat(editAmount),
+      edited: true,
+      edited_at: new Date().toISOString()
+    }).eq('id', id)
     setEditingId(null)
     setEditAmount('')
     load()
@@ -239,10 +250,17 @@ export default function BalancesPage() {
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ color: 'var(--blue)', fontWeight: '700', fontSize: '14px' }}>{fmt(b.amount_usdt)} USDT</span>
-                          {(profile?.role === 'admin' || b.worker_id === profile?.id) && (
+                          {b.edited && (
+                            <span style={{ fontSize: '9px', background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', color: 'var(--yellow)', padding: '1px 6px', borderRadius: '4px', letterSpacing: '0.5px' }}
+                              title={b.edited_at ? `Відредаговано: ${new Date(b.edited_at).toLocaleString('uk-UA')}` : ''}>
+                              ✎ відредаговано
+                            </span>
+                          )}
+                          {(profile?.role === 'admin' || b.worker_id === profile?.id) && canEdit(b.date) && (
                             <button
                               onClick={() => { setEditingId(b.id); setEditAmount(b.amount_usdt) }}
                               style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
+                              title="Редагувати (доступно 3 дні)"
                             >✏️</button>
                           )}
                         </div>
