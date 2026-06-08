@@ -84,8 +84,9 @@ export default function DashboardPage() {
   const avgBuy = buyTotalUSDT > 0 ? buyTotalUAH / buyTotalUSDT : 0
   const avgSell = sellTotalUSDT > 0 ? sellTotalUAH / sellTotalUSDT : 0
 
-  const totalUAH = filtered.reduce((s, o) => s + +o.volume_uah, 0)
-  const totalUSDT = filtered.reduce((s, o) => s + +o.volume_usdt, 0)
+  // Объём считаем только по покупкам (сколько потратили UAH на покупку USDT)
+  const totalUAH = buyTotalUAH
+  const totalUSDT = buyTotalUSDT
   const totalProfit = filteredPairs.reduce((s, p) => s + +(p.profit_uah || 0), 0)
 
   // Профит в USD — делим на средний курс покупки за период
