@@ -66,7 +66,7 @@ export default function Layout() {
 
   const navItems = [
     { to: '/', label: '📊 Дашборд', exact: true },
-    { to: '/add', label: '➕ Новий ордер' },
+    ...(profile?.role !== 'admin' ? [{ to: '/add', label: '➕ Новий ордер' }] : []),
     { to: '/orders', label: '📋 Ордери' },
     ...(profile?.role !== 'admin' ? [{ to: '/report', label: '📋 Мій звіт' }] : []),
     { to: '/losses', label: '📉 Витрати' },
