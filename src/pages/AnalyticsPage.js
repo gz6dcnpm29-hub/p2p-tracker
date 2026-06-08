@@ -50,15 +50,30 @@ export default function AnalyticsPage() {
     weekMap[k].count += 1
   })
 
+  // Week buy rates for USDT conversion
+  const weekBuyMap = {}
+  filteredOrders.filter(o => o.type === 'buy').forEach(o => {
+    const k = getWeekKey(o.created_at)
+    if (!weekBuyMap[k]) weekBuyMap[k] = { uah: 0, usdt: 0 }
+    weekBuyMap[k].uah += +o.volume_uah
+    weekBuyMap[k].usdt += +o.volume_usdt
+  })
+
   const weeks = Object.entries(weekMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, val]) => ({
-      label: new Date(date).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }),
-      profit: val.profit,
-      count: val.count,
-    }))
+    .map(([date, val]) => {
+      const buyData = weekBuyMap[date]
+      const weekRate = buyData && buyData.usdt > 0 ? buyData.uah / buyData.usdt : 0
+      const profitUsdt = weekRate > 0 ? val.profit / weekRate : 0
+      return {
+        label: new Date(date).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }),
+        profit: val.profit,
+        profitUsdt,
+        count: val.count,
+      }
+    })
 
-  const maxProfit = Math.max(...weeks.map(w => w.profit), 1)
+  const maxProfit = Math.max(...weeks.map(w => w.profitUsdt || w.profit), 1)
 
   // ── Top workers by volume ─────────────────────────────────────
   const workerMap = {}
@@ -302,12 +317,12 @@ export default function AnalyticsPage() {
               {/* Chart bars */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '200px', padding: '0 10px' }}>
                 {weeks.map((w, i) => {
-                  const h = Math.max((w.profit / maxProfit) * 180, 4)
+                  const h = Math.max(((w.profitUsdt || w.profit) / maxProfit) * 180, 4)
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                       {/* Value label */}
                       <div style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                        ₴{fmt(w.profit, 0)}
+                        {w.profitUsdt > 0 ? `${fmt(w.profitUsdt, 1)} USDT` : `₴${fmt(w.profit, 0)}`}
                       </div>
                       {/* Bar */}
                       <div style={{
