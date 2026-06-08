@@ -70,6 +70,7 @@ export default function Layout() {
     { to: '/orders', label: '📋 Ордери' },
     ...(profile?.role !== 'admin' ? [{ to: '/report', label: '📋 Мій звіт' }] : []),
     { to: '/losses', label: '📉 Витрати' },
+    { to: '/balances', label: '💰 Баланси' },
     { to: '/top', label: '🏆 Топ' },
     ...(profile?.role === 'admin' ? [
       { to: '/pairs', label: '🔗 Пари / Спред' },
