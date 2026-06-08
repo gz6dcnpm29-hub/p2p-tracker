@@ -69,7 +69,9 @@ export default function DashboardPage() {
     const d = p.created_at.slice(0, 10)
     const fromOk = !dateFrom || d >= dateFrom
     const toOk = !dateTo || d <= dateTo
-    return fromOk && toOk
+    // Если выбран конкретный воркер — показываем только его пары
+    const workerOk = filterWorker === 'all' || (p.workers || '').split(/[,/]/).map(w => w.trim()).includes(filterWorker)
+    return fromOk && toOk && workerOk
   })
 
   const buy = filtered.filter(o => o.type === 'buy')
