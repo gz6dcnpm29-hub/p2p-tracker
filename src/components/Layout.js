@@ -15,9 +15,13 @@ export default function Layout() {
     { to: '/', label: '📊 Дашборд', exact: true },
     { to: '/add', label: '➕ Новий ордер' },
     { to: '/orders', label: '📋 Ордери' },
-    { to: '/pairs', label: '🔗 Пари / Спред' },
+    { to: '/report', label: '📋 Мій звіт' },
     { to: '/top', label: '🏆 Топ' },
-    ...(profile?.role === 'admin' ? [{ to: '/analytics', label: '📈 Аналітика' }, { to: '/admin', label: '⚙️ Адмін' }] : []),
+    ...(profile?.role === 'admin' ? [
+      { to: '/pairs', label: '🔗 Пари / Спред' },
+      { to: '/analytics', label: '📈 Аналітика' },
+      { to: '/admin', label: '⚙️ Адмін' },
+    ] : []),
   ]
 
   return (
