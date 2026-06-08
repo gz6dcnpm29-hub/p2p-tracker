@@ -38,6 +38,12 @@ export default function Layout() {
       .update({ status: newStatus, status_updated_at: new Date().toISOString() })
       .eq('id', profile.id)
     if (!error) {
+      // Save to log
+      await supabase.from('status_logs').insert({
+        worker_id: profile.id,
+        worker_name: profile.full_name || profile.email,
+        status: newStatus,
+      })
       setProfile(prev => ({ ...prev, status: newStatus }))
       if (profile?.role === 'admin') loadOnlineWorkers()
     }
@@ -45,11 +51,18 @@ export default function Layout() {
   }
 
   const logout = async () => {
-    // Set offline on logout
+    // Set offline on logout and log it
     await supabase.from('profiles').update({ status: 'offline' }).eq('id', profile.id)
+    await supabase.from('status_logs').insert({
+      worker_id: profile.id,
+      worker_name: profile.full_name || profile.email,
+      status: 'offline',
+    })
     await supabase.auth.signOut()
     navigate('/login')
   }
+
+
 
   const isOnline = profile?.status === 'online'
 
@@ -63,6 +76,7 @@ export default function Layout() {
     ...(profile?.role === 'admin' ? [
       { to: '/pairs', label: '🔗 Пари / Спред' },
       { to: '/analytics', label: '📈 Аналітика' },
+      { to: '/status-logs', label: '🕐 Журнал онлайну' },
       { to: '/admin', label: '⚙️ Адмін' },
     ] : []),
   ]
