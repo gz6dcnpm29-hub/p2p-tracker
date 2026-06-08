@@ -101,6 +101,7 @@ export default function PairsPage() {
       sell_rate: +avgSellRate.toFixed(4),
       spread_pct: parseFloat(spread),
       profit_uah: parseFloat(profit),
+      volume_usdt: +totalBuyUSDT.toFixed(4),
       workers: workers2,
       created_by: profile?.id,
     })
@@ -321,7 +322,7 @@ export default function PairsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Дата', 'Працівники', 'Курс BUY', 'Курс SELL', 'Спред %', 'Профіт UAH', 'Профіт USD', ''].map(h => (
+                {['Дата', 'Працівники', 'Об\'єм USDT', 'Курс BUY', 'Курс SELL', 'Спред %', 'Профіт UAH', 'Профіт USD', ''].map(h => (
                   <th key={h} style={S.th}>{h}</th>
                 ))}
               </tr>
@@ -331,6 +332,7 @@ export default function PairsPage() {
                 <tr key={p.id}>
                   <td style={S.td}>{fmtDate(p.created_at)}</td>
                   <td style={S.td}>{p.workers}</td>
+                  <td style={{ ...S.td, color: 'var(--blue)', fontWeight: '700' }}>{p.volume_usdt ? `${fmt(p.volume_usdt)} USDT` : '—'}</td>
                   <td style={{ ...S.td, color: '#22c55e', fontWeight: '700' }}>{fmt(p.buy_rate, 2)}</td>
                   <td style={{ ...S.td, color: 'var(--red)', fontWeight: '700' }}>{fmt(p.sell_rate, 2)}</td>
                   <td style={{ ...S.td, color: 'var(--green)', fontWeight: '800', fontSize: '14px' }}>{p.spread_pct}%</td>
