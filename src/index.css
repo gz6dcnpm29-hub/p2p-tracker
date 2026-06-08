@@ -3,8 +3,8 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0a0e1a;
-  --bg2: #111827;
+  --bg: #060a14;
+  --bg2: #0d1117;
   --bg3: rgba(255,255,255,0.03);
   --border: rgba(255,255,255,0.08);
   --border-green: rgba(99,255,176,0.2);
@@ -25,6 +25,63 @@ body {
   color: var(--text);
   font-family: var(--font);
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* в”Ђв”Ђ Animated crypto background в”Ђв”Ђ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99,255,176,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(96,165,250,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 50%, rgba(251,191,36,0.02) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+body::after {
+  content: 'в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚® в‚®';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  font-size: 18px;
+  line-height: 3.2;
+  letter-spacing: 2.8em;
+  color: rgba(99,255,176,0.028);
+  pointer-events: none;
+  word-break: break-all;
+  overflow: hidden;
+  animation: drift 60s linear infinite;
+  font-family: monospace;
+}
+
+@keyframes drift {
+  0%   { transform: translateY(0px) translateX(0px); }
+  25%  { transform: translateY(-30px) translateX(10px); }
+  50%  { transform: translateY(-10px) translateX(-8px); }
+  75%  { transform: translateY(-25px) translateX(5px); }
+  100% { transform: translateY(0px) translateX(0px); }
+}
+
+/* Grid lines overlay */
+#root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(99,255,176,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,255,176,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 input, select, textarea {
@@ -44,38 +101,24 @@ button {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 8px rgba(99,255,176,0.4); }
+  50% { text-shadow: 0 0 20px rgba(99,255,176,0.8), 0 0 40px rgba(99,255,176,0.3); }
+}
 
 .fade-in { animation: fadeIn 0.3s ease; }
 
 /* в”Ђв”Ђ Mobile responsive в”Ђв”Ђ */
 @media (max-width: 768px) {
-  /* Tables scroll horizontally */
   table { font-size: 11px !important; }
   th, td { padding: 8px 6px !important; white-space: nowrap; }
-
-  /* Cards */
   div[style*="padding: 24px"] { padding: 14px !important; }
-
-  /* Grids to single column */
-  div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Pairs page - stack columns */
-  .pairs-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Buttons full width on mobile */
-  .btn-mobile-full {
-    width: 100% !important;
-  }
-
-  /* Hide less important columns on mobile */
+  div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  .pairs-grid { grid-template-columns: 1fr !important; }
+  .btn-mobile-full { width: 100% !important; }
   .hide-mobile { display: none !important; }
-
-  /* Font sizes */
   h1 { font-size: 16px !important; }
+  body::after { font-size: 14px; letter-spacing: 2em; }
 }
 
 @media (max-width: 480px) {
