@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [newRole, setNewRole] = useState('worker')
   const [creating, setCreating] = useState(false)
   const [msg, setMsg] = useState('')
+  const [editingName, setEditingName] = useState({})
 
   const loadUsers = async () => {
     const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
@@ -53,6 +54,13 @@ export default function AdminPage() {
   const updateRole = async (id, role) => {
     await supabase.from('profiles').update({ role }).eq('id', id)
     setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u))
+  }
+
+  const updateName = async (id, name) => {
+    if (!name.trim()) return
+    await supabase.from('profiles').update({ full_name: name.trim() }).eq('id', id)
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, full_name: name.trim() } : u))
+    setEditingName(prev => { const n = {...prev}; delete n[id]; return n })
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><Spinner size={32} /></div>
@@ -115,7 +123,30 @@ export default function AdminPage() {
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
-                  <td style={{ ...S.td, fontWeight: '600', color: 'var(--text)' }}>{u.full_name || '—'}</td>
+                  <td style={S.td}>
+                    {editingName[u.id] !== undefined ? (
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <input
+                          value={editingName[u.id]}
+                          onChange={e => setEditingName(prev => ({ ...prev, [u.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') updateName(u.id, editingName[u.id]); if (e.key === 'Escape') setEditingName(prev => { const n={...prev}; delete n[u.id]; return n }) }}
+                          style={{ ...S.input, padding: '4px 8px', fontSize: '12px', width: '120px' }}
+                          autoFocus
+                        />
+                        <button onClick={() => updateName(u.id, editingName[u.id])} style={{ ...S.btnPrimary, padding: '4px 10px', fontSize: '11px' }}>✓</button>
+                        <button onClick={() => setEditingName(prev => { const n={...prev}; delete n[u.id]; return n })} style={{ ...S.btnSecondary, padding: '4px 8px', fontSize: '11px' }}>✕</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text)' }}>{u.full_name || '—'}</span>
+                        <button
+                          onClick={() => setEditingName(prev => ({ ...prev, [u.id]: u.full_name || '' }))}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '12px', padding: '2px 4px' }}
+                          title="Редагувати ім'я"
+                        >✏️</button>
+                      </div>
+                    )}
+                  </td>
                   <td style={S.td}>{u.email}</td>
                   <td style={S.td}>
                     <span style={{
