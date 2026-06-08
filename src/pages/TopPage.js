@@ -42,11 +42,14 @@ export default function TopPage() {
 
   filteredOrders.forEach(o => {
     if (!workerMap[o.worker_name]) workerMap[o.worker_name] = { volume: 0, usdt: 0, count: 0, buy: 0, sell: 0, profit: 0 }
-    workerMap[o.worker_name].volume += +o.volume_uah
-    workerMap[o.worker_name].usdt += +o.volume_usdt
     workerMap[o.worker_name].count += 1
-    if (o.type === 'buy') workerMap[o.worker_name].buy += 1
-    else workerMap[o.worker_name].sell += 1
+    if (o.type === 'buy') {
+      workerMap[o.worker_name].volume += +o.volume_uah  // UAH spent on buy
+      workerMap[o.worker_name].usdt += +o.volume_usdt   // USDT bought
+      workerMap[o.worker_name].buy += 1
+    } else {
+      workerMap[o.worker_name].sell += 1
+    }
   })
 
   filteredPairs.forEach(p => {
@@ -58,19 +61,29 @@ export default function TopPage() {
     })
   })
 
-  const allWorkers = Object.entries(workerMap).map(([name, d]) => ({ name, ...d }))
+  const allWorkers = Object.entries(workerMap).map(([name, d]) => ({
+    name, ...d,
+    // Avg buy rate per worker for USD conversion
+    avgRate: d.usdt > 0 ? d.volume / d.usdt : 0,
+    // Profit in USDT
+    profitUsdt: d.usdt > 0 && d.profit > 0 ? d.profit / (d.volume / d.usdt) : 0,
+  }))
 
   const sorted = {
-    profit: [...allWorkers].sort((a, b) => b.profit - a.profit),
-    volume: [...allWorkers].sort((a, b) => b.volume - a.volume),
+    profit: [...allWorkers].sort((a, b) => b.profitUsdt - a.profitUsdt),
+    volume: [...allWorkers].sort((a, b) => b.usdt - a.usdt),
     orders: [...allWorkers].sort((a, b) => b.count - a.count),
   }
 
   const current = sorted[tab]
-  const maxVal = current.length > 0 ? (tab === 'profit' ? current[0].profit : tab === 'volume' ? current[0].volume : current[0].count) : 1
+  const maxVal = current.length > 0 ? (tab === 'profit' ? current[0].profitUsdt : tab === 'volume' ? current[0].usdt : current[0].count) : 1
 
-  const getValue = (w) => tab === 'profit' ? w.profit : tab === 'volume' ? w.volume : w.count
-  const formatVal = (w) => tab === 'profit' ? `₴${fmt(w.profit)}` : tab === 'volume' ? `₴${fmt(w.volume, 0)}` : `${w.count} ордерів`
+  const getValue = (w) => tab === 'profit' ? w.profitUsdt : tab === 'volume' ? w.usdt : w.count
+  const formatVal = (w) => tab === 'profit'
+    ? `${fmt(w.profitUsdt)} USDT`
+    : tab === 'volume'
+    ? `${fmt(w.usdt)} USDT`
+    : `${w.count} ордерів`
 
   const periodLabel = { today: 'сьогодні', week: 'тиждень', month: 'місяць', all: 'весь час' }
 
@@ -196,14 +209,14 @@ export default function TopPage() {
                       <div style={{ fontSize: '15px', fontWeight: '800', color: COLORS[i] || 'var(--text2)' }}>
                         {formatVal(w)}
                       </div>
-                      {tab !== 'profit' && w.profit > 0 && (
+                      {tab !== 'profit' && w.profitUsdt > 0 && (
                         <div style={{ fontSize: '10px', color: 'var(--green)', marginTop: '2px' }}>
-                          профіт ₴{fmt(w.profit, 0)}
+                          профіт {fmt(w.profitUsdt)} USDT
                         </div>
                       )}
-                      {tab !== 'volume' && w.volume > 0 && (
+                      {tab !== 'volume' && w.usdt > 0 && (
                         <div style={{ fontSize: '10px', color: 'var(--text3)', marginTop: '2px' }}>
-                          об'єм ₴{fmt(w.volume, 0)}
+                          об'єм {fmt(w.usdt)} USDT
                         </div>
                       )}
                     </div>
