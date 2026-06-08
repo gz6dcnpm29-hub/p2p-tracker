@@ -68,7 +68,7 @@ export default function Layout() {
     { to: '/', label: '📊 Дашборд', exact: true },
     { to: '/add', label: '➕ Новий ордер' },
     { to: '/orders', label: '📋 Ордери' },
-    { to: '/report', label: '📋 Мій звіт' },
+    ...(profile?.role !== 'admin' ? [{ to: '/report', label: '📋 Мій звіт' }] : []),
     { to: '/losses', label: '📉 Витрати' },
     { to: '/top', label: '🏆 Топ' },
     ...(profile?.role === 'admin' ? [
