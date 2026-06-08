@@ -9,6 +9,7 @@ export default function AnalyticsPage() {
   const [pairs, setPairs] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month') // week | month | all
+  const [activeTab, setActiveTab] = useState('profit') // profit | activity
 
   const load = useCallback(async () => {
     const { data: o } = await supabase.from('orders').select('*').order('created_at', { ascending: true })
@@ -108,6 +109,38 @@ export default function AnalyticsPage() {
   const avgBuyRate = totalVolumeUSDT > 0 ? totalVolume / totalVolumeUSDT : 0
   const toUSD = (uah) => avgBuyRate > 0 ? (uah / avgBuyRate).toFixed(2) : null
 
+  // ── Activity by day of week ──────────────────────────────────
+  const DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
+  const dayStats = Array(7).fill(null).map((_, i) => ({
+    day: DAY_NAMES[i],
+    orders: 0,
+    usdt: 0,
+    profitUah: 0,
+    workerActivity: {}
+  }))
+
+  filteredOrders.forEach(o => {
+    const d = new Date(o.created_at)
+    const dow = (d.getDay() + 6) % 7 // 0=Mon, 6=Sun
+    dayStats[dow].orders += 1
+    if (o.type === 'buy') {
+      dayStats[dow].usdt += +o.volume_usdt
+    }
+    if (!dayStats[dow].workerActivity[o.worker_name]) dayStats[dow].workerActivity[o.worker_name] = 0
+    dayStats[dow].workerActivity[o.worker_name] += 1
+  })
+
+  filteredPairs.forEach(p => {
+    const d = new Date(p.created_at)
+    const dow = (d.getDay() + 6) % 7
+    dayStats[dow].profitUah += +(p.profit_uah || 0)
+  })
+
+  const maxOrders = Math.max(...dayStats.map(d => d.orders), 1)
+  const maxUsdt = Math.max(...dayStats.map(d => d.usdt), 1)
+  const maxProfit2 = Math.max(...dayStats.map(d => d.profitUah), 1)
+  const allWorkerNames = [...new Set(filteredOrders.map(o => o.worker_name))]
+
   return (
     <div>
       {/* Header */}
@@ -116,19 +149,131 @@ export default function AnalyticsPage() {
           <h1 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text)', letterSpacing: '1px' }}>📈 Аналітика</h1>
           <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Графіки та статистика по співробітниках</div>
         </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {[['week', 'Тиждень'], ['month', 'Місяць'], ['all', 'Весь час']].map(([val, label]) => (
-            <button key={val} onClick={() => setPeriod(val)} style={{
-              ...S.btnSecondary,
-              padding: '7px 14px', fontSize: '11px',
-              color: period === val ? 'var(--green)' : 'var(--text3)',
-              borderColor: period === val ? 'rgba(99,255,176,0.4)' : 'rgba(255,255,255,0.08)',
-              background: period === val ? 'rgba(99,255,176,0.08)' : 'transparent',
-            }}>{label}</button>
-          ))}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[['week', 'Тиждень'], ['month', 'Місяць'], ['all', 'Весь час']].map(([val, label]) => (
+              <button key={val} onClick={() => setPeriod(val)} style={{
+                ...S.btnSecondary,
+                padding: '7px 14px', fontSize: '11px',
+                color: period === val ? 'var(--green)' : 'var(--text3)',
+                borderColor: period === val ? 'rgba(99,255,176,0.4)' : 'rgba(255,255,255,0.08)',
+                background: period === val ? 'rgba(99,255,176,0.08)' : 'transparent',
+              }}>{label}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {[['profit', '📈 Профіт'], ['activity', '📅 Активність']].map(([val, label]) => (
+              <button key={val} onClick={() => setActiveTab(val)} style={{
+                ...S.btnSecondary,
+                padding: '7px 14px', fontSize: '11px',
+                color: activeTab === val ? 'var(--yellow)' : 'var(--text3)',
+                borderColor: activeTab === val ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)',
+                background: activeTab === val ? 'rgba(251,191,36,0.06)' : 'transparent',
+              }}>{label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {activeTab === 'activity' && (
+        <>
+          {/* Activity by day of week */}
+          <div style={S.card}>
+            <div style={S.cardTitle}>Активність по днях тижня</div>
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: '500px' }}>
+                {/* Bars */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', height: '180px', padding: '0 10px', marginBottom: '8px' }}>
+                  {dayStats.map((d, i) => {
+                    const hOrders = Math.max((d.orders / maxOrders) * 160, d.orders > 0 ? 4 : 0)
+                    const hUsdt = Math.max((d.usdt / maxUsdt) * 160, d.usdt > 0 ? 4 : 0)
+                    const isWeekend = i >= 5
+                    return (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700' }}>{d.orders > 0 ? d.orders : ''}</div>
+                        <div style={{ width: '100%', display: 'flex', gap: '3px', alignItems: 'flex-end', height: '160px' }}>
+                          {/* Orders bar */}
+                          <div style={{ flex: 1, height: `${hOrders}px`, background: isWeekend ? 'rgba(251,191,36,0.5)' : 'rgba(99,255,176,0.5)', borderRadius: '3px 3px 0 0', minHeight: d.orders > 0 ? '4px' : '0', transition: 'height 0.4s' }} />
+                          {/* USDT bar */}
+                          <div style={{ flex: 1, height: `${hUsdt}px`, background: isWeekend ? 'rgba(251,191,36,0.3)' : 'rgba(96,165,250,0.4)', borderRadius: '3px 3px 0 0', minHeight: d.usdt > 0 ? '4px' : '0', transition: 'height 0.4s' }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* X labels */}
+                <div style={{ display: 'flex', gap: '10px', padding: '0 10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                  {dayStats.map((d, i) => (
+                    <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: i >= 5 ? 'var(--yellow)' : 'var(--text2)' }}>{d.day}</div>
+                      <div style={{ fontSize: '9px', color: 'var(--text3)', marginTop: '2px' }}>{fmt(d.usdt, 0)} USDT</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Legend */}
+                <div style={{ display: 'flex', gap: '16px', padding: '12px 10px 0', fontSize: '10px', color: 'var(--text3)' }}>
+                  <span>🟩 Кількість ордерів</span>
+                  <span>🟦 Об'єм USDT</span>
+                  <span style={{ color: 'var(--yellow)' }}>🟨 Вихідні</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity per worker per day */}
+          <div style={S.card}>
+            <div style={S.cardTitle}>Активність воркерів по днях</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+                <thead>
+                  <tr>
+                    <th style={S.th}>Воркер</th>
+                    {DAY_NAMES.map((d, i) => <th key={d} style={{ ...S.th, color: i >= 5 ? 'var(--yellow)' : 'var(--text3)' }}>{d}</th>)}
+                    <th style={S.th}>Всього</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allWorkerNames.map(worker => {
+                    const total = dayStats.reduce((s, d) => s + (d.workerActivity[worker] || 0), 0)
+                    const maxDay = Math.max(...dayStats.map(d => d.workerActivity[worker] || 0), 1)
+                    return (
+                      <tr key={worker}>
+                        <td style={{ ...S.td, fontWeight: '600', color: 'var(--text)' }}>{worker}</td>
+                        {dayStats.map((d, i) => {
+                          const cnt = d.workerActivity[worker] || 0
+                          const intensity = cnt / maxDay
+                          return (
+                            <td key={i} style={{ ...S.td, textAlign: 'center' }}>
+                              <div style={{
+                                display: 'inline-block', minWidth: '28px', padding: '3px 6px',
+                                borderRadius: '4px', fontSize: '11px', fontWeight: '700',
+                                background: cnt > 0 ? `rgba(99,255,176,${0.08 + intensity * 0.25})` : 'transparent',
+                                color: cnt > 0 ? 'var(--green)' : 'var(--text3)',
+                                border: cnt > 0 ? `1px solid rgba(99,255,176,${0.1 + intensity * 0.3})` : '1px solid transparent',
+                              }}>{cnt > 0 ? cnt : '—'}</div>
+                            </td>
+                          )
+                        })}
+                        <td style={{ ...S.td, color: 'var(--yellow)', fontWeight: '700', textAlign: 'center' }}>{total}</td>
+                      </tr>
+                    )
+                  })}
+                  {/* Total row */}
+                  <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <td style={{ ...S.td, fontWeight: '700', color: 'var(--text3)', fontSize: '10px', letterSpacing: '1px' }}>ВСЬОГО</td>
+                    {dayStats.map((d, i) => (
+                      <td key={i} style={{ ...S.td, textAlign: 'center', fontWeight: '700', color: i >= 5 ? 'var(--yellow)' : 'var(--text2)' }}>{d.orders || '—'}</td>
+                    ))}
+                    <td style={{ ...S.td, color: 'var(--green)', fontWeight: '800', textAlign: 'center' }}>{filteredOrders.length}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'profit' && <>
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '20px' }}>
         {[
@@ -261,6 +406,8 @@ export default function AnalyticsPage() {
           ))}
         </div>
       </div>
+      </>
+    }
     </div>
   )
 }
