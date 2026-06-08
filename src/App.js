@@ -7,6 +7,8 @@ import OrdersPage from './pages/OrdersPage'
 import AddOrderPage from './pages/AddOrderPage'
 import PairsPage from './pages/PairsPage'
 import AdminPage from './pages/AdminPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import TopPage from './pages/TopPage'
 import Layout from './components/Layout'
 
 export const AuthContext = createContext(null)
@@ -59,6 +61,10 @@ export default function App() {
             <Route path="pairs" element={<PairsPage />} />
             <Route path="admin" element={
               profile?.role === 'admin' ? <AdminPage /> : <Navigate to="/" />
+            } />
+            <Route path="top" element={<TopPage />} />
+            <Route path="analytics" element={
+              profile?.role === 'admin' ? <AnalyticsPage /> : <Navigate to="/" />
             } />
           </Route>
         </Routes>
