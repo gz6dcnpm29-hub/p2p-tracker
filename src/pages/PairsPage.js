@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../App'
 import { S, fmt, fmtDate, Spinner } from '../components/ui'
 
+const todayStr = () => new Date().toISOString().slice(0, 10)
+
 export default function PairsPage() {
   const { profile } = useAuth()
   const [orders, setOrders] = useState([])
@@ -11,6 +13,8 @@ export default function PairsPage() {
   const [selectedBuyIds, setSelectedBuyIds] = useState([])
   const [selectedSellIds, setSelectedSellIds] = useState([])
   const [saving, setSaving] = useState(false)
+  const [filterDate, setFilterDate] = useState(todayStr())
+  const [useDateFilter, setUseDateFilter] = useState(false)
 
   const load = async () => {
     const { data: o } = await supabase.from('orders').select('*').order('created_at', { ascending: false })
@@ -32,9 +36,23 @@ export default function PairsPage() {
   const buyOrders = orders.filter(o => o.type === 'buy')
   const sellOrders = orders.filter(o => o.type === 'sell')
 
+  // Filter by date if enabled
+  const filteredBuyOrders = useDateFilter
+    ? buyOrders.filter(o => o.created_at.slice(0, 10) === filterDate)
+    : buyOrders
+  const filteredSellOrders = useDateFilter
+    ? sellOrders.filter(o => o.created_at.slice(0, 10) === filterDate)
+    : sellOrders
+
   const toggleId = (id, list, setList) => {
     setList(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
+
+  // Select all by date
+  const selectAllBuy = () => setSelectedBuyIds(filteredBuyOrders.map(o => o.id))
+  const selectAllSell = () => setSelectedSellIds(filteredSellOrders.map(o => o.id))
+  const clearBuy = () => setSelectedBuyIds([])
+  const clearSell = () => setSelectedSellIds([])
 
   // Aggregate selected orders
   const selectedBuyOrders = buyOrders.filter(o => selectedBuyIds.includes(o.id))
@@ -89,16 +107,13 @@ export default function PairsPage() {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><Spinner size={32} /></div>
 
   const OrderCheckbox = ({ order, selected, onToggle }) => (
-    <div
-      onClick={onToggle}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
-        border: `1px solid ${selected ? 'rgba(99,255,176,0.4)' : 'rgba(255,255,255,0.07)'}`,
-        background: selected ? 'rgba(99,255,176,0.07)' : 'rgba(255,255,255,0.02)',
-        marginBottom: '6px', transition: 'all 0.15s',
-      }}
-    >
+    <div onClick={onToggle} style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+      border: `1px solid ${selected ? 'rgba(99,255,176,0.4)' : 'rgba(255,255,255,0.07)'}`,
+      background: selected ? 'rgba(99,255,176,0.07)' : 'rgba(255,255,255,0.02)',
+      marginBottom: '6px', transition: 'all 0.15s',
+    }}>
       <div style={{
         width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
         border: `2px solid ${selected ? 'var(--green)' : 'var(--text3)'}`,
@@ -114,7 +129,7 @@ export default function PairsPage() {
         <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
         <span style={{ color: 'var(--text2)' }}>₴{fmt(order.volume_uah, 0)}</span>
         <span style={{ color: 'var(--text3)', margin: '0 6px' }}>·</span>
-        <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{new Date(order.created_at).toLocaleDateString('uk-UA')}</span>
+        <span style={{ color: 'var(--text3)', fontSize: '11px' }}>{new Date(order.created_at).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })} {new Date(order.created_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
     </div>
   )
@@ -122,25 +137,77 @@ export default function PairsPage() {
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text)', letterSpacing: '1px' }}>Пари / Спред</h1>
-        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Оберіть кілька ордерів buy і sell — система порахує середній курс і загальний профіт</div>
+        <h1 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text)', letterSpacing: '1px' }}>🔗 Пари / Спред</h1>
+        <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>Оберіть ордери buy і sell — система порахує середній курс і загальний профіт</div>
       </div>
 
       {profile?.role === 'admin' && (
         <div style={S.card}>
-          <div style={S.cardTitle}>Створити пару</div>
+          {/* Date filter */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                onClick={() => setUseDateFilter(!useDateFilter)}
+                style={{
+                  width: '18px', height: '18px', borderRadius: '4px', cursor: 'pointer',
+                  border: `2px solid ${useDateFilter ? 'var(--green)' : 'var(--text3)'}`,
+                  background: useDateFilter ? 'var(--green)' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                {useDateFilter && <span style={{ color: '#0a0e1a', fontSize: '11px', fontWeight: '900' }}>✓</span>}
+              </div>
+              <span style={{ fontSize: '12px', color: useDateFilter ? 'var(--green)' : 'var(--text3)', cursor: 'pointer' }}
+                onClick={() => setUseDateFilter(!useDateFilter)}>
+                Фільтр за датою
+              </span>
+            </div>
+            {useDateFilter && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={e => setFilterDate(e.target.value)}
+                  style={{ ...S.input, width: 'auto', colorScheme: 'dark' }}
+                />
+                <button onClick={() => setFilterDate(todayStr())} style={{ ...S.btnSecondary, padding: '8px 12px', fontSize: '11px' }}>
+                  Сьогодні
+                </button>
+              </div>
+            )}
+            {useDateFilter && (
+              <div style={{ fontSize: '11px', color: 'var(--text3)' }}>
+                BUY: {filteredBuyOrders.length} шт · SELL: {filteredSellOrders.length} шт
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
             {/* BUY side */}
             <div>
-              <div style={{ ...S.label, color: '#22c55e', marginBottom: '10px' }}>
-                ✓ ОРДЕРИ BUY ({selectedBuyIds.length} обрано · ₴{fmt(totalBuyUAH, 0)})
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ ...S.label, color: '#22c55e', marginBottom: 0 }}>
+                  BUY ({selectedBuyIds.length} обрано · ₴{fmt(totalBuyUAH, 0)})
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={selectAllBuy} style={{
+                    background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                    borderRadius: '6px', padding: '4px 10px', color: '#22c55e',
+                    fontSize: '10px', cursor: 'pointer', letterSpacing: '0.5px',
+                  }}>✓ Всі</button>
+                  {selectedBuyIds.length > 0 && (
+                    <button onClick={clearBuy} style={{
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '6px', padding: '4px 10px', color: 'var(--text3)',
+                      fontSize: '10px', cursor: 'pointer',
+                    }}>✕</button>
+                  )}
+                </div>
               </div>
-              {buyOrders.length === 0
-                ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає ордерів buy</div>
-                : buyOrders.map(o => (
-                  <OrderCheckbox
-                    key={o.id}
-                    order={o}
+              {filteredBuyOrders.length === 0
+                ? <div style={{ color: 'var(--text3)', fontSize: '12px', padding: '10px' }}>Немає ордерів buy{useDateFilter ? ' за вибрану дату' : ''}</div>
+                : filteredBuyOrders.map(o => (
+                  <OrderCheckbox key={o.id} order={o}
                     selected={selectedBuyIds.includes(o.id)}
                     onToggle={() => toggleId(o.id, selectedBuyIds, setSelectedBuyIds)}
                   />
@@ -150,15 +217,29 @@ export default function PairsPage() {
 
             {/* SELL side */}
             <div>
-              <div style={{ ...S.label, color: 'var(--red)', marginBottom: '10px' }}>
-                ✓ ОРДЕРИ SELL ({selectedSellIds.length} обрано · ₴{fmt(totalSellUAH, 0)})
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ ...S.label, color: 'var(--red)', marginBottom: 0 }}>
+                  SELL ({selectedSellIds.length} обрано · ₴{fmt(totalSellUAH, 0)})
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={selectAllSell} style={{
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: '6px', padding: '4px 10px', color: '#ef4444',
+                    fontSize: '10px', cursor: 'pointer', letterSpacing: '0.5px',
+                  }}>✓ Всі</button>
+                  {selectedSellIds.length > 0 && (
+                    <button onClick={clearSell} style={{
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '6px', padding: '4px 10px', color: 'var(--text3)',
+                      fontSize: '10px', cursor: 'pointer',
+                    }}>✕</button>
+                  )}
+                </div>
               </div>
-              {sellOrders.length === 0
-                ? <div style={{ color: 'var(--text3)', fontSize: '12px' }}>Немає ордерів sell</div>
-                : sellOrders.map(o => (
-                  <OrderCheckbox
-                    key={o.id}
-                    order={o}
+              {filteredSellOrders.length === 0
+                ? <div style={{ color: 'var(--text3)', fontSize: '12px', padding: '10px' }}>Немає ордерів sell{useDateFilter ? ' за вибрану дату' : ''}</div>
+                : filteredSellOrders.map(o => (
+                  <OrderCheckbox key={o.id} order={o}
                     selected={selectedSellIds.includes(o.id)}
                     onToggle={() => toggleId(o.id, selectedSellIds, setSelectedSellIds)}
                   />
@@ -171,26 +252,11 @@ export default function PairsPage() {
           {hasPreview && (
             <div style={{ padding: '16px', background: 'rgba(99,255,176,0.05)', border: '1px solid rgba(99,255,176,0.2)', borderRadius: '10px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС BUY</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>{fmt(avgBuyRate, 2)}₴</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС SELL</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--red)' }}>{fmt(avgSellRate, 2)}₴</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СПРЕД %</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--green)' }}>{spread}%</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>РІЗНИЦЯ КУРСІВ</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--yellow)' }}>₴{fmt(avgSellRate - avgBuyRate, 4)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ UAH</div>
-                  <div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>₴{fmt(profit)}</div>
-                </div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС BUY</div><div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>{fmt(avgBuyRate, 2)}₴</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СЕР. КУРС SELL</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--red)' }}>{fmt(avgSellRate, 2)}₴</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>СПРЕД %</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--green)' }}>{spread}%</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>РІЗНИЦЯ КУРСІВ</div><div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--yellow)' }}>₴{fmt(avgSellRate - avgBuyRate, 4)}</div></div>
+                <div><div style={{ fontSize: '10px', color: 'var(--text3)', letterSpacing: '1px', marginBottom: '4px' }}>ПРОФІТ UAH</div><div style={{ fontSize: '22px', fontWeight: '800', color: '#22c55e' }}>₴{fmt(profit)}</div></div>
               </div>
             </div>
           )}
@@ -208,6 +274,7 @@ export default function PairsPage() {
         </div>
       )}
 
+      {/* Saved pairs */}
       <div style={S.card}>
         <div style={S.cardTitle}>Збережені пари ({pairs.length})</div>
         <div style={{ overflowX: 'auto' }}>
