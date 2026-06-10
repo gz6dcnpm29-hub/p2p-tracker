@@ -30,49 +30,46 @@ export default function MatrixBackground() {
     })
 
     const draw = () => {
-      // Fade effect
-      ctx.fillStyle = 'rgba(2, 4, 8, 0.055)'
+      // Slow fade — longer trails
+      ctx.fillStyle = 'rgba(2, 4, 8, 0.04)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       drops.forEach((y, i) => {
+        // Only draw every 3rd column for sparseness
+        if (i % 3 !== 0) {
+          drops[i] += 0.2
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.99) drops[i] = 0
+          return
+        }
+
         const char = CRYPTO_CHARS[Math.floor(Math.random() * CRYPTO_CHARS.length)]
         const x = i * fontSize
-
-        // Head of the stream — bright
         const color = colColors[i]
-        if (color === 'green') {
-          ctx.fillStyle = `rgba(180, 255, 220, ${0.7 + Math.random() * 0.3})`
-        } else if (color === 'blue') {
-          ctx.fillStyle = `rgba(150, 200, 255, ${0.6 + Math.random() * 0.3})`
-        } else {
-          ctx.fillStyle = `rgba(255, 210, 100, ${0.6 + Math.random() * 0.3})`
-        }
-        ctx.font = `bold ${fontSize}px monospace`
-        ctx.fillText(char, x, y * fontSize)
 
-        // Trail — dimmer
+        // Head — subtle glow
         if (color === 'green') {
-          ctx.fillStyle = `rgba(99, 255, 176, ${0.12 + Math.random() * 0.1})`
+          ctx.fillStyle = `rgba(99, 255, 176, ${0.25 + Math.random() * 0.15})`
         } else if (color === 'blue') {
-          ctx.fillStyle = `rgba(96, 165, 250, ${0.1 + Math.random() * 0.1})`
+          ctx.fillStyle = `rgba(96, 165, 250, ${0.2 + Math.random() * 0.1})`
         } else {
-          ctx.fillStyle = `rgba(251, 191, 36, ${0.1 + Math.random() * 0.1})`
+          ctx.fillStyle = `rgba(251, 191, 36, ${0.18 + Math.random() * 0.1})`
         }
         ctx.font = `${fontSize}px monospace`
-        for (let t = 1; t < 8; t++) {
+        ctx.fillText(char, x, y * fontSize)
+
+        // Very dim trail
+        ctx.fillStyle = `rgba(99, 255, 176, 0.04)`
+        for (let t = 1; t < 5; t++) {
           const tc = CRYPTO_CHARS[Math.floor(Math.random() * CRYPTO_CHARS.length)]
           ctx.fillText(tc, x, (y - t) * fontSize)
         }
 
-        // Reset when off screen
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0
-        }
-        drops[i] += 0.5 + Math.random() * 0.3
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.99) drops[i] = 0
+        drops[i] += 0.15 + Math.random() * 0.1
       })
     }
 
-    const interval = setInterval(draw, 45)
+    const interval = setInterval(draw, 60)
 
     return () => {
       clearInterval(interval)
@@ -91,7 +88,7 @@ export default function MatrixBackground() {
         height: '100%',
         zIndex: 0,
         pointerEvents: 'none',
-        opacity: 0.35,
+        opacity: 0.18,
       }}
     />
   )
