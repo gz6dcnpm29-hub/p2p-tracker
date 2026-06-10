@@ -14,6 +14,7 @@ import LossesPage from './pages/LossesPage'
 import BalancesPage from './pages/BalancesPage'
 import StatusLogsPage from './pages/StatusLogsPage'
 import Layout from './components/Layout'
+import MatrixBackground from './components/MatrixBackground'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -47,14 +48,18 @@ export default function App() {
   }, [])
 
   if (loading) return (
-    <div style={loadingStyle}>
-      <div style={spinnerStyle} />
-      <span style={{ color: '#63ffb0', letterSpacing: '3px', fontSize: '13px' }}>ЗАВАНТАЖЕННЯ...</span>
-    </div>
+    <>
+      <MatrixBackground />
+      <div style={loadingStyle}>
+        <div style={spinnerStyle} />
+        <span style={{ color: '#63ffb0', letterSpacing: '3px', fontSize: '13px' }}>ЗАВАНТАЖЕННЯ...</span>
+      </div>
+    </>
   )
 
   return (
     <AuthContext.Provider value={{ session, profile, setProfile }}>
+      <MatrixBackground />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" />} />
