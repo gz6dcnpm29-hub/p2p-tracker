@@ -245,7 +245,26 @@ export default function Layout() {
       {/* ── Main content ── */}
       <main style={{ flex: 1, padding: '24px', overflowX: 'hidden' }}
         className="main-content">
-        <Outlet />
+      {/* Quote */}
+<div style={{
+  padding: '8px 16px',
+  marginBottom: '16px',
+  borderLeft: '2px solid rgba(99,255,176,0.3)',
+  background: 'rgba(99,255,176,0.03)',
+  borderRadius: '0 6px 6px 0',
+}}>
+  <p style={{
+    fontSize: '11px',
+    color: 'var(--text3)',
+    fontStyle: 'italic',
+    letterSpacing: '0.3px',
+    lineHeight: '1.6',
+  }}>
+    «Не зная ни сна и ни отдыха, при лунном и солнечном свете,
+    мы делаем деньги из воздуха, чтобы снова пустить их на ветер»
+  </p>
+</div>
+<Outlet /> 
       </main>
 
       {/* ── Responsive styles ── */}
