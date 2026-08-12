@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import AceAgent from './AceAgent'
+
 import { useAuth } from '../App'
 
 export default function Layout() {
@@ -266,7 +266,7 @@ export default function Layout() {
   </p>
 </div>
 <Outlet /> 
-      <AceAgent />
+      
       </main>
 
       {/* ── Responsive styles ── */}
