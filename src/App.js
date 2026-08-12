@@ -10,7 +10,8 @@ import AdminPage from './pages/AdminPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import TopPage from './pages/TopPage'
 import MyReportPage from './pages/MyReportPage'
-import LossesPage from './pages/LossesPage'import BanPage from './pages/BanPage'
+import LossesPage from './pages/LossesPage'
+import BanPage from './pages/BanPage'
 import BalancesPage from './pages/BalancesPage'
 import StatusLogsPage from './pages/StatusLogsPage'
 import Layout from './components/Layout'
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="top" element={<TopPage />} />
             <Route path="report" element={<MyReportPage />} />
             <Route path="losses" element={<LossesPage />} />
+            <Route path="ban" element={<BanPage />} />
             <Route path="balances" element={<BalancesPage />} />
             <Route path="status-logs" element={
               profile?.role === 'admin' ? <StatusLogsPage /> : <Navigate to="/" />
